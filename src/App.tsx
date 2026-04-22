@@ -82,8 +82,32 @@ interface InventoryEntry {
 // --- Components ---
 
 function LoginView() {
+  const [error, setError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const handleLogin = async () => {
+    setError(null);
+    setIsLoggingIn(true);
+    try {
+      await loginWithGoogle();
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/popup-blocked') {
+        setError('Trình duyệt đã chặn cửa sổ đăng nhập. Vui lòng kiểm tra và cho phép bật popup.');
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        setError('Cửa sổ đăng nhập đã bị đóng.');
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        // Ignore, common when multiple clicks happen
+      } else {
+        setError('Có lỗi khi đăng nhập. Hãy thử lại hoặc mở trong tab mới.');
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-light-bg flex flex-center items-center justify-center p-4">
+    <div className="min-h-screen bg-light-bg flex items-center justify-center p-4">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -96,12 +120,30 @@ function LoginView() {
         </div>
         <h1 className="text-3xl font-black text-dark mb-2 uppercase tracking-tight">Dream Durians</h1>
         <p className="text-primary font-bold mb-8">Quản lý vườn sầu riêng chuyên nghiệp.</p>
+        
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold leading-relaxed animate-in fade-in slide-in-from-top-2">
+            ⚠️ {error}
+            <p className="mt-2 text-dark opacity-70">Mẹo: Nếu vẫn lỗi, hãy thử "Mở trong tab mới" (Open in new tab).</p>
+          </div>
+        )}
+
         <button 
-          onClick={loginWithGoogle}
-          className="w-full flex items-center justify-center gap-3 btn-vibrant py-4 shadow-lg transition-all active:scale-95"
+          onClick={handleLogin}
+          disabled={isLoggingIn}
+          className="w-full flex items-center justify-center gap-3 btn-vibrant py-4 shadow-lg transition-all active:scale-95 disabled:opacity-50"
         >
-          <img src="https://www.gstatic.com/firebase/builtins/external/google.svg" alt="Google" className="w-5 h-5 bg-white rounded-full p-0.5" />
-          Đăng nhập với Google
+          {isLoggingIn ? (
+            <span className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-dark border-t-transparent rounded-full animate-spin"></div>
+              Đang kết nối...
+            </span>
+          ) : (
+            <>
+              <img src="https://www.gstatic.com/firebase/builtins/external/google.svg" alt="Google" className="w-5 h-5 bg-white rounded-full p-0.5" />
+              Đăng nhập với Google
+            </>
+          )}
         </button>
       </motion.div>
     </div>
@@ -914,10 +956,10 @@ export default function App() {
 
   useEffect(() => {
     return onAuthStateChanged(auth, async u => {
-      setUser(u);
-      if (u) {
-        // Fetch user preferences/profile for todayTask
-        try {
+      try {
+        if (u) {
+          setUser(u);
+          // Fetch user preferences/profile for todayTask
           const userDoc = await getDoc(doc(db, 'users', u.uid));
           if (userDoc.exists()) {
             const data = userDoc.data();
@@ -926,17 +968,24 @@ export default function App() {
             // Initialize user doc if it doesn't exist
             await setDoc(doc(db, 'users', u.uid), {
               userId: u.uid,
-              email: u.email,
-              displayName: u.displayName,
-              photoURL: u.photoURL,
+              email: u.email || '',
+              displayName: u.displayName || 'Người dùng',
+              photoURL: u.photoURL || '',
               todayTask: 'Kiểm tra vườn'
             });
           }
-        } catch (err) {
-          console.error("Error fetching user data:", err);
+        } else {
+          setUser(null);
         }
+      } catch (err: any) {
+        console.error("Auth sync error:", err);
+        // If it's a permission error, we might still want to show the app but warn
+        if (err.code === 'permission-denied') {
+          console.warn("Permission denied for user profile. Checking rules...");
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
   }, []);
 

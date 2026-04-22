@@ -47,8 +47,7 @@ service cloud.firestore {
 
     // UserProfile Validation
     function isValidUserProfile(data) {
-      return data.keys().hasAll(['userId', 'email']) &&
-             data.userId == request.auth.uid &&
+      return data.userId == request.auth.uid &&
              data.email is string;
     }
 
