@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #8A9A5B;
+  --color-secondary: #F9E076;
+  --color-accent: #FFD700;
+  --color-dark: #4B5320;
+  --color-brown: #5D4037;
+  --color-light-bg: #FCF9EE;
+  
+  --font-sans: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-light-bg text-dark;
+  }
+}
+
+.panel-shadow {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+
+.btn-vibrant {
+  @apply bg-secondary text-dark font-extrabold uppercase tracking-wider rounded-xl transition-all active:translate-y-[2px];
+  box-shadow: 0 4px 0 theme('colors.accent');
+}
+
+.btn-vibrant:active {
+  box-shadow: none;
+}

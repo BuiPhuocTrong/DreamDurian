@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Catch-all deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // MedicationLog Validation
+    function isValidMedicationLog(data) {
+      return data.keys().hasAll(['date', 'medicineName', 'quantity', 'userId', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.medicineName is string && data.medicineName.size() <= 300 &&
+             data.quantity is number &&
+             data.date is string &&
+             (request.method == 'create' ? data.createdAt == request.time : true);
+    }
+
+    // TreeStatus Validation
+    function isValidTreeStatus(data) {
+      return data.keys().hasAll(['treeCode', 'userId', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.treeCode is string && data.treeCode.size() <= 200 &&
+             (request.method == 'create' ? data.createdAt == request.time : true);
+    }
+
+    // UserProfile Validation
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['userId', 'email']) &&
+             data.userId == request.auth.uid &&
+             data.email is string;
+    }
+
+    // FinanceLog Validation
+    function isValidFinanceLog(data) {
+      return data.keys().hasAll(['date', 'itemName', 'totalPrice', 'userId', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.itemName is string && data.itemName.size() <= 300 &&
+             data.totalPrice is number &&
+             data.date is string &&
+             (request.method == 'create' ? data.createdAt == request.time : true);
+    }
+
+    // InventoryItem Validation
+    function isValidInventoryItem(data) {
+      return data.keys().hasAll(['itemName', 'quantity', 'userId', 'updatedAt']) &&
+             data.userId == request.auth.uid &&
+             data.itemName is string && data.itemName.size() <= 300 &&
+             data.quantity is number &&
+             data.updatedAt == request.time;
+    }
+
+    // Collections
+    match /medications/{logId} {
+      allow read: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidMedicationLog(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidMedicationLog(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /tree_statuses/{statusId} {
+      allow read: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidTreeStatus(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidTreeStatus(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /finances/{financeId} {
+      allow read: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidFinanceLog(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidFinanceLog(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /inventory/{itemId} {
+      allow read: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidInventoryItem(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidInventoryItem(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow create, update: if isSignedIn() && isOwner(userId) && isValidUserProfile(incoming());
+    }
+
+    // Connectivity Test path
+    match /_connection_test_/{docId} {
+      allow read: if true;
+    }
+  }
+}

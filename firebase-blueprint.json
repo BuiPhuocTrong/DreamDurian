@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "MedicationLog": {
+      "title": "Nhật ký phun thuốc",
+      "description": "Thông tin về việc sử dụng thuốc cho cây trồng",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "medicineName": { "type": "string" },
+        "purpose": { "type": "string" },
+        "quantity": { "type": "number" },
+        "dosage": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "medicineName", "quantity", "userId"]
+    },
+    "TreeStatus": {
+      "title": "Tình trạng cây",
+      "description": "Ghi nhận tình trạng sức khỏe của từng gốc cây",
+      "type": "object",
+      "properties": {
+        "treeCode": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["treeCode", "userId"]
+    },
+    "UserProfile": {
+      "title": "Thông tin người dùng",
+      "description": "Thông tin cơ bản của người dùng",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "todayTask": { "type": "string" }
+      },
+      "required": ["userId", "email"]
+    },
+    "FinanceLog": {
+      "title": "Quản lý thu chi",
+      "description": "Thông tin chi tiêu cho thuốc men, phân bón",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "itemName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "inputMode": { "type": "string", "enum": ["unit", "total"] },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "itemName", "totalPrice", "userId"]
+    },
+    "InventoryItem": {
+      "title": "Tồn kho",
+      "description": "Thông tin lượng tồn kho các loại thuốc/vật tư",
+      "type": "object",
+      "properties": {
+        "itemName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "userId": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["itemName", "quantity", "userId"]
+    }
+  },
+  "firestore": {
+    "medications/{logId}": {
+      "schema": "MedicationLog",
+      "description": "Danh sách các bản ghi phun thuốc"
+    },
+    "tree_statuses/{statusId}": {
+      "schema": "TreeStatus",
+      "description": "Danh sách các bản ghi tình trạng cây"
+    },
+    "users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Thông tin người dùng"
+    },
+    "finances/{financeId}": {
+      "schema": "FinanceLog",
+      "description": "Danh sách các bản ghi chi tiêu"
+    },
+    "inventory/{itemId}": {
+      "schema": "InventoryItem",
+      "description": "Dữ liệu tồn kho vật tư"
+    }
+  }
+}

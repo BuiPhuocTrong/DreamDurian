@@ -1,0 +1,8 @@
+{
+  "name": "Dream Durians",
+  "description": "Ứng dụng quản lý tình trạng cây trồng (sầu riêng), theo dõi lịch phun thuốc và ghi nhận tình trạng từng gốc cây.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
