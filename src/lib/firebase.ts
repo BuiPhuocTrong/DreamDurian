@@ -5,7 +5,10 @@ import {
   signInWithPopup, 
   signOut, 
   setPersistence, 
-  browserLocalPersistence 
+  browserLocalPersistence,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -35,6 +38,16 @@ export const loginWithGoogle = async () => {
     console.error("Login Error:", error);
     throw error;
   }
+};
+
+export const registerWithEmail = async (email: string, pass: string, name: string) => {
+  const res = await createUserWithEmailAndPassword(auth, email, pass);
+  await updateProfile(res.user, { displayName: name });
+  return res;
+};
+
+export const loginWithEmail = (email: string, pass: string) => {
+  return signInWithEmailAndPassword(auth, email, pass);
 };
 
 export const logout = () => signOut(auth);

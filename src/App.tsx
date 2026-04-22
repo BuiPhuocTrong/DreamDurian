@@ -18,7 +18,7 @@ import {
   serverTimestamp,
   onSnapshotsInSync
 } from 'firebase/firestore';
-import { auth, db, loginWithGoogle, logout } from './lib/firebase';
+import { auth, db, loginWithGoogle, logout, registerWithEmail, loginWithEmail } from './lib/firebase';
 import { 
   Sprout, 
   Syringe, 
@@ -33,7 +33,11 @@ import {
   Check,
   Edit2,
   Wallet,
-  CircleDollarSign
+  CircleDollarSign,
+  Mail,
+  Lock,
+  User as UserIcon,
+  ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -84,67 +88,136 @@ interface InventoryEntry {
 function LoginView() {
   const [error, setError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
 
-  const handleLogin = async () => {
+  const handleGoogleLogin = async () => {
     setError(null);
     setIsLoggingIn(true);
     try {
       await loginWithGoogle();
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/popup-blocked') {
-        setError('Trình duyệt đã chặn cửa sổ đăng nhập. Vui lòng kiểm tra và cho phép bật popup.');
-      } else if (err.code === 'auth/popup-closed-by-user') {
-        setError('Cửa sổ đăng nhập đã bị đóng.');
-      } else if (err.code === 'auth/cancelled-popup-request') {
-        // Ignore, common when multiple clicks happen
+      setError('Lỗi kết nối Google. Hãy thử lại.');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password || (isSignUp && !name)) {
+      setError('Vui lòng nhập đủ thông tin.');
+      return;
+    }
+    setError(null);
+    setIsLoggingIn(true);
+    try {
+      if (isSignUp) {
+        await registerWithEmail(email, password, name);
       } else {
-        setError('Có lỗi khi đăng nhập. Hãy thử lại hoặc mở trong tab mới.');
+        await loginWithEmail(email, password);
       }
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/invalid-credential') setError('Sai email hoặc mật khẩu.');
+      else if (err.code === 'auth/email-already-in-use') setError('Email này đã được đăng ký.');
+      else setError('Có lỗi xảy ra. Thử lại sau nhé!');
     } finally {
       setIsLoggingIn(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-light-bg flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#F8FAF5] flex items-center justify-center p-6">
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-8 rounded-3xl panel-shadow max-w-md w-full text-center border-t-8 border-secondary"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="max-w-[400px] w-full"
       >
-        <div className="mb-6 flex justify-center">
-          <div className="bg-secondary/20 p-4 rounded-full">
-            <Sprout size={48} className="text-primary" />
+        <div className="text-center mb-10">
+          <div className="inline-block p-4 bg-primary/10 rounded-3xl mb-4">
+            <Sprout size={42} className="text-primary" />
+          </div>
+          <h1 className="text-3xl font-black text-dark tracking-tighter italic uppercase">Dream Durians</h1>
+          <p className="text-sm font-bold text-primary/60">Ghi nhật ký vườn sầu riêng</p>
+        </div>
+
+        <div className="bg-white rounded-[40px] p-8 panel-shadow border border-secondary/20">
+          <button 
+            onClick={handleGoogleLogin}
+            disabled={isLoggingIn}
+            className="w-full flex items-center justify-center gap-3 bg-white border-2 border-secondary shadow-sm py-4 rounded-2xl text-sm font-black text-dark active:scale-[0.98] transition-all disabled:opacity-50 mb-6"
+          >
+            <img src="https://www.gstatic.com/firebase/builtins/external/google.svg" alt="G" className="w-5 h-5" />
+            Vào nhanh bằng Google
+          </button>
+
+          <div className="relative mb-8 text-center">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-secondary/30"></div></div>
+            <span className="relative bg-white px-4 text-[10px] font-black text-primary/40 uppercase tracking-[0.2em]">Hoặc dùng Email</span>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <AnimatePresence mode="popLayout">
+              {isSignUp && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-1"
+                >
+                  <div className="relative">
+                    <UserIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40" />
+                    <input 
+                      type="text" placeholder="Họ và tên của bạn"
+                      className="w-full pl-12 pr-4 py-4 bg-secondary/10 border-transparent border-2 focus:border-primary rounded-2xl outline-none text-sm font-bold transition-all"
+                      value={name} onChange={e => setName(e.target.value)}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="relative">
+              <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40" />
+              <input 
+                type="email" placeholder="Địa chỉ Email"
+                className="w-full pl-12 pr-4 py-4 bg-secondary/10 border-transparent border-2 focus:border-primary rounded-2xl outline-none text-sm font-bold transition-all"
+                value={email} onChange={e => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="relative">
+              <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40" />
+              <input 
+                type="password" placeholder="Mật khẩu"
+                className="w-full pl-12 pr-4 py-4 bg-secondary/10 border-transparent border-2 focus:border-primary rounded-2xl outline-none text-sm font-bold transition-all"
+                value={password} onChange={e => setPassword(e.target.value)}
+              />
+            </div>
+
+            {error && <p className="text-[11px] font-bold text-red-500 text-center px-2">{error}</p>}
+
+            <button 
+              type="submit" disabled={isLoggingIn}
+              className="w-full py-4 bg-primary text-white rounded-2xl text-sm font-black shadow-lg shadow-primary/20 active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {isLoggingIn ? 'Đang xử lý...' : (isSignUp ? 'Tạo tài khoản ngay' : 'Đăng nhập vào vườn')}
+            </button>
+          </form>
+
+          <div className="mt-8 text-center">
+            <button 
+              onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
+              className="text-xs font-black text-primary/60 hover:text-primary transition-colors"
+            >
+              {isSignUp ? 'Đã có tài khoản? Đăng nhập' : 'Bạn là người mới? Đăng ký tại đây'}
+            </button>
           </div>
         </div>
-        <h1 className="text-3xl font-black text-dark mb-2 uppercase tracking-tight">Dream Durians</h1>
-        <p className="text-primary font-bold mb-8">Quản lý vườn sầu riêng chuyên nghiệp.</p>
-        
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold leading-relaxed animate-in fade-in slide-in-from-top-2">
-            ⚠️ {error}
-            <p className="mt-2 text-dark opacity-70">Mẹo: Nếu vẫn lỗi, hãy thử "Mở trong tab mới" (Open in new tab).</p>
-          </div>
-        )}
-
-        <button 
-          onClick={handleLogin}
-          disabled={isLoggingIn}
-          className="w-full flex items-center justify-center gap-3 btn-vibrant py-4 shadow-lg transition-all active:scale-95 disabled:opacity-50"
-        >
-          {isLoggingIn ? (
-            <span className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-dark border-t-transparent rounded-full animate-spin"></div>
-              Đang kết nối...
-            </span>
-          ) : (
-            <>
-              <img src="https://www.gstatic.com/firebase/builtins/external/google.svg" alt="Google" className="w-5 h-5 bg-white rounded-full p-0.5" />
-              Đăng nhập với Google
-            </>
-          )}
-        </button>
       </motion.div>
     </div>
   );
